@@ -81,6 +81,10 @@ router.post('/generate', async (req, res) => {
       if (mode === 'quiz') {
         const quiz = await generateQuizFromContent(combinedContent);
         return res.json({ type: 'quiz', data: quiz });
+      } else if (mode === 'guide') {
+        const { generateStudyGuide } = require('../services/aiGenerator');
+        const guide = await generateStudyGuide(combinedContent);
+        return res.json({ type: 'guide', data: guide });
       } else if (mode === 'recall' || mode === 'game') {
         const { generateFlashcardsFromText } = require('../services/aiGenerator');
         const pairs = await generateFlashcardsFromText(combinedContent);
@@ -101,7 +105,7 @@ router.post('/generate', async (req, res) => {
             fallbackPairs.push({ term: term.trim(), definition, aliases: [] });
           }
         }
-        if (fallbackPairs.length >= 10) break;
+        if (fallbackPairs.length >= 50) break;
       }
 
       if (fallbackPairs.length > 0) {
@@ -113,6 +117,8 @@ router.post('/generate', async (req, res) => {
             correctAnswer: p.definition
           }));
           return res.json({ type: 'quiz', data: quiz, isFallback: true });
+        } else if (mode === 'guide') {
+          return res.json({ type: 'guide', data: combinedContent, isFallback: true });
         }
         return res.json({ type: mode, data: fallbackPairs, isFallback: true });
       }

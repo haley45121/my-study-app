@@ -18,6 +18,7 @@ const SYSTEM_PROMPT = `
 You are a structured information extraction system designed to generate high-quality, ultra-concise flashcards from uploaded documents.
 
 Your task is to extract ONLY valid term–definition pairs. Avoid ANY extra wording, conversational filler, or unnecessary context.
+You MUST generate at least 20 term-definition pairs if there is sufficient content.
 
 STRICT RULES:
 1. A "term" must be a meaningful concept (noun or short phrase). 
@@ -42,7 +43,7 @@ STRICT RULES:
 ]
 
 GOAL:
-Produce a clean, high-confidence set of flashcards. Quality, precision, and conciseness are paramount. Remove all fluff.
+Produce a clean, high-confidence set of flashcards. Generate at least 20 items. Quality, precision, and conciseness are paramount. Remove all fluff.
 `;
 
 const configJSON = {
@@ -129,7 +130,7 @@ async function generateQuizFromContent(content) {
     }
   };
 
-  const prompt = `Based on the following study content, generate 5-10 multiple choice questions. 
+  const prompt = `Based on the following study content, generate at least 20 multiple choice questions.
   Each question must focus strictly on a specific term and its definition. 
   Each question must have exactly 4 plausible options, where only one is correct. 
   
@@ -205,10 +206,31 @@ async function extractTextFromDocument(filePath, mimeType = 'application/pdf') {
   }
 }
 
+async function generateStudyGuide(content) {
+  const client = getAIClient();
+  const prompt = `Create a comprehensive, well-structured study guide from the following content. 
+  Include major headings, bullet points, and highlight key terms. 
+  Make it highly readable and formal.
+  
+  Content: ${content}`;
+
+  const response = await client.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: [{ role: "user", parts: [{ text: prompt }] }],
+    config: {
+      systemInstruction: "You are an expert tutor creating formal, structured study guides. Do not use conversational filler.",
+      temperature: 0.7
+    }
+  });
+
+  return response.text;
+}
+
 module.exports = {
   generateFlashcardsFromText,
   uploadDocumentForFlashcards,
   extractTextFromDocument,
   generateQuizFromContent,
-  semanticGradeAnswer
+  semanticGradeAnswer,
+  generateStudyGuide
 };

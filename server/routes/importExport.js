@@ -30,12 +30,20 @@ router.post('/csv', upload.single('file'), async (req, res) => {
     const result = await parseDocument(req.file.buffer, 'text/csv', '.csv');
     const db = getDb();
     
-    // Register file in database
-    const fileResult = db.prepare('INSERT INTO files (name, type, content) VALUES (?, ?, ?)')
-      .run(req.file.originalname, 'csv', result.rawContent);
+    // Prevent duplicate files
+    const existingFile = db.prepare('SELECT id FROM files WHERE name = ? AND type = ?').get(req.file.originalname, 'csv');
+    let fileId;
+    if (existingFile) {
+      fileId = existingFile.id;
+      db.prepare('UPDATE files SET content = ? WHERE id = ?').run(result.rawContent, fileId);
+    } else {
+      const fileResult = db.prepare('INSERT INTO files (name, type, content) VALUES (?, ?, ?)')
+        .run(req.file.originalname, 'csv', result.rawContent);
+      fileId = fileResult.lastInsertRowid;
+    }
 
     res.json({
-      fileId: fileResult.lastInsertRowid,
+      fileId: fileId,
       filename: req.file.originalname,
       candidateCount: result.candidates.length,
       candidates: result.candidates
@@ -53,12 +61,20 @@ router.post('/pdf', upload.single('file'), async (req, res) => {
     const result = await parseDocument(req.file.buffer, 'application/pdf', '.pdf');
     const db = getDb();
 
-    // Register file in database
-    const fileResult = db.prepare('INSERT INTO files (name, type, content) VALUES (?, ?, ?)')
-      .run(req.file.originalname, 'pdf', result.rawContent);
+    // Prevent duplicate files
+    const existingFile = db.prepare('SELECT id FROM files WHERE name = ? AND type = ?').get(req.file.originalname, 'pdf');
+    let fileId;
+    if (existingFile) {
+      fileId = existingFile.id;
+      db.prepare('UPDATE files SET content = ? WHERE id = ?').run(result.rawContent, fileId);
+    } else {
+      const fileResult = db.prepare('INSERT INTO files (name, type, content) VALUES (?, ?, ?)')
+        .run(req.file.originalname, 'pdf', result.rawContent);
+      fileId = fileResult.lastInsertRowid;
+    }
 
     res.json({
-      fileId: fileResult.lastInsertRowid,
+      fileId: fileId,
       filename: req.file.originalname,
       candidateCount: result.candidates.length,
       candidates: result.candidates

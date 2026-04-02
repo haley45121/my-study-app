@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { learnApi, importExportApi } from '../utils/api';
+import { learnApi, importExportApi, setsApi } from '../utils/api';
 import QuizArena from '../components/learn/QuizArena';
 import RecallArena from '../components/learn/RecallArena';
 import MatchingGame from '../components/learn/MatchingGame';
+import StudyGuideArena from '../components/learn/StudyGuideArena';
 import { FileText, FolderArchive, Target, Brain, Puzzle, Trash2 } from 'lucide-react';
 
 export default function Learn() {
@@ -58,6 +59,18 @@ export default function Learn() {
     setSelectedSets(prev => 
       prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]
     );
+  };
+
+  const handleDeleteSet = async (e, id) => {
+    e.stopPropagation();
+    if (!window.confirm('Are you sure you want to delete this study set?')) return;
+    try {
+      await setsApi.delete(id);
+      setSelectedSets(prev => prev.filter(sId => sId !== id));
+      await loadSources();
+    } catch (err) {
+      alert('Failed to delete set: ' + err.message);
+    }
   };
   
   async function handleFileUpload(e) {
@@ -118,6 +131,7 @@ export default function Learn() {
         {activeMode === 'quiz' && <QuizArena questions={studyData} onExit={() => setStudyData(null)} />}
         {activeMode === 'recall' && <RecallArena pairs={studyData} onExit={() => setStudyData(null)} />}
         {activeMode === 'game' && <MatchingGame pairs={studyData} onExit={() => setStudyData(null)} />}
+        {activeMode === 'guide' && <StudyGuideArena guideText={studyData} onExit={() => setStudyData(null)} />}
       </div>
     );
   }
@@ -188,9 +202,17 @@ export default function Learn() {
                     onClick={() => toggleSet(set.id)}
                   >
                     <div className="source-checkbox"></div>
-                    <div className="source-info">
+                    <div className="source-info" style={{ flex: 1 }}>
                       <div className="source-name">{set.title}</div>
                     </div>
+                    <button 
+                      className="btn btn-ghost btn-xs" 
+                      onClick={(e) => handleDeleteSet(e, set.id)}
+                      title="Delete Set"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </div>
                 ))}
               </div>
@@ -233,6 +255,17 @@ export default function Learn() {
               <div className="mode-info">
                 <div className="mode-title">Matching Game</div>
                 <div className="mode-desc">A fast-paced term and definition pairing challenge.</div>
+              </div>
+            </div>
+
+            <div 
+              className={`mode-card ${activeMode === 'guide' ? 'active' : ''}`}
+              onClick={() => setActiveMode('guide')}
+            >
+              <div className="mode-icon"><FileText size={32} /></div>
+              <div className="mode-info">
+                <div className="mode-title">Study Guide</div>
+                <div className="mode-desc">A comprehensive summary and study outline.</div>
               </div>
             </div>
           </div>
