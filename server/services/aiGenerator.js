@@ -53,7 +53,7 @@ const configJSON = {
 async function generateFlashcardsFromText(text) {
   const client = getAIClient();
   const response = await client.models.generateContent({
-    model: 'gemini-3-flash-preview',
+    model: 'gemini-1.5-flash',
     contents: [{ role: "user", parts: [{ text: "Please process the following text:\n" + text }] }],
     config: {
       ...configJSON,
@@ -73,10 +73,10 @@ async function generateFlashcardsFromText(text) {
 async function uploadDocumentForFlashcards(filePath, mimeType = 'application/pdf') {
   const client = getAIClient();
   const fileContent = fs.readFileSync(filePath).toString('base64');
-  
+
   try {
     const response = await client.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-1.5-flash',
       contents: [{
         role: "user",
         parts: [
@@ -132,7 +132,7 @@ GUIDELINES:
 Content: ${content}`;
 
   const response = await client.models.generateContent({
-    model: 'gemini-3-flash-preview',
+    model: 'gemini-1.5-flash',
     contents: [{ role: "user", parts: [{ text: prompt }] }],
     config: {
       responseMimeType: "application/json",
@@ -186,7 +186,7 @@ async function semanticGradeAnswer(userAnswer, correctAnswer) {
   const prompt = `Student Answer: "${userAnswer}"\nCorrect Answer: "${correctAnswer}"`;
 
   const response = await client.models.generateContent({
-    model: 'gemini-3-flash-preview',
+    model: 'gemini-1.5-flash',
     contents: [{ role: "user", parts: [{ text: prompt }] }],
     config: {
       responseMimeType: "application/json",
@@ -202,10 +202,10 @@ async function semanticGradeAnswer(userAnswer, correctAnswer) {
 async function extractTextFromDocument(filePath, mimeType = 'application/pdf') {
   const client = getAIClient();
   const fileContent = fs.readFileSync(filePath).toString('base64');
-  
+
   try {
     const response = await client.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-1.5-flash',
       contents: [{
         role: "user",
         parts: [
@@ -218,7 +218,7 @@ async function extractTextFromDocument(filePath, mimeType = 'application/pdf') {
         temperature: 0.7
       }
     });
-    
+
     return response.text;
   } catch (err) {
     console.error('Gemini v1beta extraction error:', err);
@@ -268,7 +268,7 @@ CRITICAL RULES:
 Content: ${content}`;
 
   const response = await client.models.generateContent({
-    model: 'gemini-3-flash-preview',
+    model: 'gemini-1.5-flash',
     contents: [{ role: "user", parts: [{ text: prompt }] }],
     config: {
       systemInstruction: "You are an expert academic synthesizer. Your goal is to transform raw notes into a beautifully structured, rephrased, and pedagogical study guide.",
