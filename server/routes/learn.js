@@ -54,7 +54,7 @@ router.post('/generate', async (req, res) => {
         const file = db.prepare('SELECT name, content FROM files WHERE id = ?').get(id);
         if (file && file.content) {
           console.log(`- Loaded content from file: ${file.name} (${file.content.length} chars)`);
-          combinedContent += `--- Content from ${file.name} ---\n${file.content}\n\n`;
+          combinedContent += `${file.content}\n\n`;
         } else {
           console.warn(`- No content found for file ID: ${id}`);
         }
@@ -69,7 +69,7 @@ router.post('/generate', async (req, res) => {
         const cards = db.prepare('SELECT term, definition FROM cards WHERE setId = ?').all(id);
         const setContent = cards.map(c => `${c.term}: ${c.definition}`).join('\n');
         console.log(`- Loaded ${cards.length} cards from set: ${setInfo?.title || id}`);
-        combinedContent += `--- Content from Study Set: ${setInfo?.title || id} ---\n${setContent}\n\n`;
+        combinedContent += `${setContent}\n\n`;
       }
     }
 
@@ -114,7 +114,7 @@ router.post('/generate', async (req, res) => {
             if (!str) return '';
             return String(str)
               .replace(/\*\*/g, '')
-              .replace(/[•●]/g, '')
+              .replace(/[•●○◦▪️▫️]/g, '') // Remove variety of bullets
               .replace(/^[*\-#]\s*/, '')
               .trim();
           };

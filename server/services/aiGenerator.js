@@ -15,35 +15,24 @@ function getAIClient() {
 }
 
 const SYSTEM_PROMPT = `
-You are a structured information extraction system designed to generate high-quality, ultra-concise flashcards from uploaded documents.
+You are a knowledgeable and professional academic tutor. Your task is to extract high-quality, conceptual flashcard pairs (Term and Definition) from the provided document content.
 
-Your task is to extract ONLY valid term–definition pairs. Avoid ANY extra wording, conversational filler, or unnecessary context.
-You MUST generate at least 20 term-definition pairs if there is sufficient content.
+CORE PRINCIPLES:
+1. ADAPTIVE QUANTITY: Generate between 20-30 unique pairs if the content is sufficient. If the content is limited or short, generate as many high-quality, distinct pairs as possible. Quality is more important than hitting a count, but aim for depth.
+2. TUTOR-LIKE REPHRASING: Do not copy sentences directly from the document. Rephrase, summarize, and synthesize definitions in your own academic yet accessible language.
+3. CONCEPTUAL FOCUS: Extract meaningful terms that represent key concepts, definitions, or facts. Avoid trivial fragments or non-conceptual words.
+4. NO REPETITION: Ensure every pair is unique and covers a distinct piece of information.
+5. CLEAN CONTENT: Absolutely NO markdown symbols (•, ●, ○, *, #, -), chapter titles, section headers, page numbers, or raw document metadata should appear in the Term or Definition text.
 
-STRICT RULES:
-1. A "term" must be a meaningful concept (noun or short phrase). 
-   - NO introductory phrases (e.g., "The concept of...")
-   - NO trailing punctuation.
-
-2. A "definition" must:
-   - Be a clean, precise explanation.
-   - NO extra sentences, examples, or "This means that..." filler.
-   - Keep it under 20 words if possible.
-
-3. HANDLE SLIDES/PDFs:
-   - Combine fragmented bullets into one concise definition.
-   - Ignore headers, footers, and page numbers.
-
-4. OUTPUT FORMAT (STRICT):
+OUTPUT FORMAT (STRICT JSON):
 [
   {
-    "term": "Term",
-    "definition": "Definition"
+    "term": "Rephrased Concept Name",
+    "definition": "Synthesized and clear academic definition in your own words."
   }
 ]
 
-GOAL:
-Produce a clean, high-confidence set of flashcards. Generate at least 20 items. Quality, precision, and conciseness are paramount. Remove all fluff.
+GOAL: Provide a clean, robust, and conceptually rich set of study materials.
 `;
 
 const configJSON = {
@@ -130,13 +119,17 @@ async function generateQuizFromContent(content) {
     }
   };
 
-  const prompt = `Based on the following study content, generate at least 20 multiple choice questions.
-  Each question must focus strictly on a specific term, concept, or fact explicitly found in the content.
-  Each question must have exactly 4 plausible, meaningful options, where only one is correct. 
-  DO NOT use section headers or bullet points as answer choices; write fully formed, real conceptual answers.
-  IMPORTANT: Strip all markdown symbols (like •, **, #, -, *) from both the question and all option text before returning. Give clean, plain text only.
-  
-  Content: ${content}`;
+  const prompt = `Act as an expert tutor. Based on the following study content, generate a comprehensive quiz.
+
+GUIDELINES:
+1. QUANTITY: Generate exactly 20-30 unique multiple-choice questions if the material supports it. If the content is limited, provide the maximum number of high-quality questions possible without being repetitive.
+2. QUESTION STYLE: Frame questions to test conceptual understanding, not just rote memorization. Do not copy sentences word-for-word; rephrase and reframe the content.
+3. OPTIONS: Provide exactly 4 options per question. The correct answer must be accurate and unambiguous. The 3 distractors should be plausible, related to the topic, but clearly incorrect. 
+4. DO NOT USE: Chapter titles, section headers, page numbers, or raw PDF formatting as answer choices or part of questions.
+5. NO MARKDOWN: Strip all markdown bullets (•, ●, *, -), bolding (**), or headers (#) from the returned strings. Provide clean plain text.
+6. NO CUT-OFFS: Ensure all questions and answers are complete sentences.
+
+Content: ${content}`;
 
   const response = await client.models.generateContent({
     model: 'gemini-3-flash-preview',
@@ -144,8 +137,9 @@ async function generateQuizFromContent(content) {
     config: {
       responseMimeType: "application/json",
       responseSchema: quizSchema,
-      systemInstruction: "You are a quiz generator. Focus strictly on terminology and facts. Avoid conversational filler.",
-      temperature: 1.0
+      systemInstruction: "You are an expert tutor and researcher. Your goal is to transform raw notes into clear, pedagogical quiz questions. REPHRASE EVERYTHING. Never use chapter titles or slide placeholders as answers. Ensure each distractor reflects a meaningful misconception.",
+      temperature: 0.7,
+      maxOutputTokens: 8192
     }
   });
 
@@ -163,7 +157,7 @@ async function generateQuizFromContent(content) {
     if (!str) return '';
     return String(str)
       .replace(/\*\*/g, '')
-      .replace(/[•●]/g, '')
+      .replace(/[•●○◦▪️▫️]/g, '')
       .replace(/^[*\-#]\s*/, '')
       .trim();
   };
@@ -216,12 +210,12 @@ async function extractTextFromDocument(filePath, mimeType = 'application/pdf') {
         role: "user",
         parts: [
           { inlineData: { data: fileContent, mimeType } },
-          { text: "Please provide a concise but comprehensive text-only extraction of all the key information in this document, preserving technical terms and definitions exactly as they appear." }
+          { text: "Provide a clean, comprehensive text-only extraction of the document. Absolutely strip out raw bullet points (•, ●, ○), page numbers, headers, and footers. Present the content in well-formed sentences and logical paragraphs while preserving all technical terms and conceptual definitions." }
         ]
       }],
       config: {
-        systemInstruction: "You are a highly accurate document text extraction system. Provide a clean, comprehensive text-only extraction.",
-        temperature: 1.0
+        systemInstruction: "You are a highly accurate document text extraction system. Your output must be clean, plain text with no PDF artifacts or raw bullet symbols.",
+        temperature: 0.7
       }
     });
     
@@ -234,37 +228,42 @@ async function extractTextFromDocument(filePath, mimeType = 'application/pdf') {
 
 async function generateStudyGuide(content) {
   const client = getAIClient();
-  const prompt = `Generate a study guide from the following content exactly matching this template format:
+  const prompt = `Act as an expert tutor. Synthesize the following content into a comprehensive and well-organized study guide exactly matching this template:
 
 # [Topic Name] Study Guide
 
 ## Overview
-A 2-3 sentence summary of what this material covers and why it matters.
+A 2-3 sentence summary written in your own words explaining what this material covers and why it matters.
 
 ## Key Concepts
 For each major concept:
-**Concept Name** — clear, concise definition in plain language
+**Concept Name** — a clear, synthesized explanation in plain language (do not copy raw text).
 
 ## Detailed Notes
-Break the content into logical sections with headers. Under each section include:
-- The main idea
-- Supporting details
-- Examples if applicable
+Synthesize the content into logical sections with your own headers. Under each section:
+- Explain the main ideas and supporting details in a structured way.
+- Provide examples or analogies to clarify difficult points.
 
 ## Quick Reference
-A bullet list of the most important facts, dates, numbers, or terms to memorize
+A bullet list of the most essential facts, dates, numbers, or terms to memorize.
 
 ## Connections & Relationships
-Explain how the key concepts relate to each other using simple language like "X leads to Y" or "A is different from B because..."
+Synthesize how the key concepts relate to each other. Use simple bridging language like "X leads to Y" or "A explains the foundation for B."
 
 ## Likely Exam Questions
-List 5-8 questions the professor might ask, with brief answers underneath each one
+5-8 predictive questions a professor might ask, followed by clear, thorough answers.
 
 ## Memory Tips
-For difficult concepts, provide a mnemonic, analogy, or simple trick to remember it
+For difficult concepts, provide a mnemonic, analogy, or simple trick to remember it.
 
 ## Summary Checklist
-A checklist of everything the student should understand before an exam
+A checklist of everything the student should have mastered before an exam.
+
+CRITICAL RULES:
+- REPHRASE EVERYTHING. Do not dump raw PDF snippets.
+- CLEAN TEXT: Strip out all raw bullets (•, ●), page numbers, and leftover PDF headers.
+- NO EMOJIS.
+- Use a formal, clear, and academic tone.
 
 Content: ${content}`;
 
@@ -272,7 +271,7 @@ Content: ${content}`;
     model: 'gemini-3-flash-preview',
     contents: [{ role: "user", parts: [{ text: prompt }] }],
     config: {
-      systemInstruction: "You are an expert tutor creating formal, structured study guides. You MUST use the exact markdown template provided, including the exact headers. DO NOT use emojis.",
+      systemInstruction: "You are an expert academic synthesizer. Your goal is to transform raw notes into a beautifully structured, rephrased, and pedagogical study guide.",
       temperature: 0.7
     }
   });
