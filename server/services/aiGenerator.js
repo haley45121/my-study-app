@@ -208,17 +208,45 @@ async function extractTextFromDocument(filePath, mimeType = 'application/pdf') {
 
 async function generateStudyGuide(content) {
   const client = getAIClient();
-  const prompt = `Create a comprehensive, well-structured study guide from the following content. 
-  Include major headings, bullet points, and highlight key terms. 
-  Make it highly readable and formal.
-  
-  Content: ${content}`;
+  const prompt = `Generate a study guide from the following content exactly matching this template format:
+
+# [Topic Name] Study Guide
+
+## Overview
+A 2-3 sentence summary of what this material covers and why it matters.
+
+## Key Concepts
+For each major concept:
+**Concept Name** — clear, concise definition in plain language
+
+## Detailed Notes
+Break the content into logical sections with headers. Under each section include:
+- The main idea
+- Supporting details
+- Examples if applicable
+
+## Quick Reference
+A bullet list of the most important facts, dates, numbers, or terms to memorize
+
+## Connections & Relationships
+Explain how the key concepts relate to each other using simple language like "X leads to Y" or "A is different from B because..."
+
+## Likely Exam Questions
+List 5-8 questions the professor might ask, with brief answers underneath each one
+
+## Memory Tips
+For difficult concepts, provide a mnemonic, analogy, or simple trick to remember it
+
+## Summary Checklist
+A checklist of everything the student should understand before an exam
+
+Content: ${content}`;
 
   const response = await client.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: [{ role: "user", parts: [{ text: prompt }] }],
     config: {
-      systemInstruction: "You are an expert tutor creating formal, structured study guides. Do not use conversational filler.",
+      systemInstruction: "You are an expert tutor creating formal, structured study guides. You MUST use the exact markdown template provided, including the exact headers. DO NOT use emojis.",
       temperature: 0.7
     }
   });
