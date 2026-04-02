@@ -3,10 +3,12 @@ export default function StudyGuideArena({ guideText, onExit }) {
   const parseSections = (text) => {
     if (!text) return { title: 'Study Guide', sections: [] };
     
+    // Comprehensive noise cleanup
     const cleanText = text
       .replace(/^```(markdown)?\n?/i, '')
       .replace(/```$/i, '')
       .replace(/--- Content from .*? ---\n?/g, '')
+      .replace(/^---+\s*$/gm, '') // Remove horizontal lines
       .trim();
       
     const lines = cleanText.split('\n');
@@ -14,19 +16,36 @@ export default function StudyGuideArena({ guideText, onExit }) {
     const sections = [];
     let currentSection = null;
 
+    // Filter out common metadata and structural noise
+    const isNoiseLine = (line) => {
+      const trimmed = line.trim();
+      if (!trimmed) return false;
+      // Common PDF/Note artifacts
+      if (/^[-*=_]{3,}$/.test(trimmed)) return true; // Horizontal separators
+      if (/\d{1,2}\/\d{1,2}\/\d{2,4}/.test(trimmed)) return true; 
+      if (/\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+\d{4}\b/i.test(trimmed)) return true;
+      if (trimmed.toLowerCase().endsWith('.pdf')) return true;
+      if (trimmed.toLowerCase().endsWith('.docx')) return true;
+      if (trimmed.toLowerCase().startsWith('page ')) return true;
+      return false;
+    };
+
     lines.forEach(line => {
       const trimmedLine = line.trim();
+      if (isNoiseLine(trimmedLine)) return;
       
       if (trimmedLine.startsWith('# ') && !trimmedLine.startsWith('## ')) {
-        title = trimmedLine.substring(2).trim();
+        title = trimmedLine.substring(2).trim().replace(/\*/g, '');
       } else if (trimmedLine.startsWith('## ')) {
         if (currentSection && currentSection.content.some(c => c.trim())) {
           sections.push(currentSection);
         }
-        currentSection = { title: trimmedLine.substring(3).trim(), content: [] };
+        // Normalize section title
+        const secTitle = trimmedLine.substring(3).trim().replace(/\*/g, '').toUpperCase();
+        currentSection = { title: secTitle, content: [] };
       } else {
         if (!currentSection && trimmedLine) {
-          currentSection = { title: 'Introduction', content: [] };
+          currentSection = { title: 'OVERVIEW', content: [] };
         }
         if (currentSection) {
           currentSection.content.push(line);
@@ -43,21 +62,33 @@ export default function StudyGuideArena({ guideText, onExit }) {
 
   const { title, sections } = parseSections(guideText);
 
-  const formatLine = (line, i) => {
-    let cleanLine = line;
-    
-    if (line.startsWith('### ')) {
-      return <h4 key={i} className="sub-section-header">{line.substring(4).replace(/\*\*/g, '')}</h4>;
-    }
-    
-    const bulletRegex = /^\s*[•○●◦▪️▫️\-*]\s+/;
-    const isList = bulletRegex.test(line);
-    if (isList) {
-      cleanLine = line.replace(bulletRegex, '');
-    }
-    
-    if (!cleanLine.trim() && !isList) return null;
+  const pastels = [
+    'rgba(125, 160, 125, 0.15)', // sage green
+    'rgba(200, 138, 144, 0.15)', // dusty rose
+    'rgba(192, 139, 92, 0.15)',  // warm beige
+    'rgba(155, 142, 196, 0.15)'  // muted lavender
+  ];
 
+  const formatLine = (line, i) => {
+    // 1. Level 3 headers
+    if (line.trim().startsWith('### ')) {
+      return <h4 key={i} className="sub-header">{line.trim().substring(4).replace(/\*+/g, '')}</h4>;
+    }
+    
+    // 2. Aggressive symbol cleanup
+    // This regex catches sequences like "* —", "• —", "●", "○", "■", "---", "-", "*", etc.
+    const bulletRegex = /^\s*([*•●○■◦▪️▫️\-]+\s*—?\s*|[-*•]\s+)/;
+    const isList = bulletRegex.test(line);
+    let cleanLine = line.replace(bulletRegex, '').replace(/^—\s*/, '').trim();
+    
+    // 3. Strip single asterisks (italics) but keep the text
+    cleanLine = cleanLine.replace(/([^\*])\*([^\*]+)\*([^\*])/g, '$1$2$3') // middle of sentence
+                         .replace(/^\*([^\*]+)\*/g, '$1') // start of sentence
+                         .replace(/\*([^\*]+)\*$/g, '$1'); // end of sentence
+
+    if (!cleanLine && !isList) return null;
+
+    // 4. Handle bolding (keep as <strong>)
     const parts = cleanLine.split(/(\*\*.*?\*\*)/g);
     const renderedLine = parts.map((part, index) => {
       if (part.startsWith('**') && part.endsWith('**')) {
@@ -68,191 +99,167 @@ export default function StudyGuideArena({ guideText, onExit }) {
 
     if (isList) {
       return (
-        <li key={i} className="list-item">
-          <span className="bullet-marker">—</span>
-          <span className="list-content">{renderedLine}</span>
-        </li>
+        <div key={i} className="list-row">
+          <span className="dot">•</span>
+          <span className="text">{renderedLine}</span>
+        </div>
       );
     }
     
-    return <p key={i} className="paragraph">{renderedLine}</p>;
+    return <p key={i} className="content-para">{renderedLine}</p>;
   };
 
   return (
-    <div className="guide-document-container">
-      <div className="document-header">
-        <div className="header-main">
-          <h1 className="document-title">{title}</h1>
-          <div className="document-meta">Official Study Guide • AI-Synthesized Review</div>
-        </div>
-        <button className="btn-exit-minimal" onClick={onExit}>Close Document</button>
-      </div>
+    <div className="study-guide-arena">
+      <header className="arena-top-nav">
+        <h1 className="main-title">{title}</h1>
+        <button className="done-btn" onClick={onExit}>Done</button>
+      </header>
 
-      <div className="document-body">
+      <main className="guide-stack">
         {sections.map((sec, idx) => (
-          <div key={idx} className="document-section-block">
-            <div className="section-label-container">
+          <section 
+            key={idx} 
+            className="guide-card animate-slide-up" 
+            style={{ 
+              backgroundColor: pastels[idx % pastels.length],
+              animationDelay: `${idx * 0.05}s`
+            }}
+          >
+            <div className="card-header">
               <h2 className="section-label">{sec.title}</h2>
-              <div className="section-divider"></div>
+              <hr className="header-divider" />
             </div>
-            <div className="section-content-wrapper">
-              <div className="section-body-text">
-                {sec.content.map((line, i) => formatLine(line, i))}
-              </div>
+            <div className="card-body">
+              {sec.content.map((line, i) => formatLine(line, i))}
             </div>
-          </div>
+          </section>
         ))}
-      </div>
+      </main>
 
       <style>{`
-        .guide-document-container {
-          max-width: 850px;
+        .study-guide-arena {
+          max-width: 800px;
           margin: 0 auto;
-          padding: 4rem 2rem;
+          padding: 2rem 1rem 6rem;
           font-family: "Times New Roman", Times, serif;
-          color: #2d2a26;
-          background: #fffcf9; /* subtle cream tint */
-          min-height: 100vh;
-          animation: fadeIn 0.6s ease-out;
+          color: #2c2420;
+          line-height: 1.6;
         }
 
-        .document-header {
+        .arena-top-nav {
           display: flex;
           justify-content: space-between;
-          align-items: flex-start;
-          margin-bottom: 5rem;
-          border-bottom: 3px double #d1c7bc;
-          padding-bottom: 2rem;
+          align-items: center;
+          margin-bottom: 3rem;
+          padding-bottom: 1rem;
+          border-bottom: 1px solid rgba(138, 123, 106, 0.2);
         }
 
-        .document-title {
-          font-size: 2.8rem;
+        .main-title {
+          font-size: 2.2rem;
           font-weight: 700;
           color: #5d4e41;
           margin: 0;
-          letter-spacing: -0.01em;
-          text-transform: uppercase;
         }
 
-        .document-meta {
-          font-size: 0.9rem;
-          color: #8c7e6d;
-          margin-top: 0.5rem;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-        }
-
-        .btn-exit-minimal {
-          background: transparent;
-          border: 1px solid #d1c7bc;
-          padding: 0.6rem 1.2rem;
-          font-family: inherit;
-          color: #8c7e6d;
-          cursor: pointer;
-          transition: all 0.2s;
-          text-transform: uppercase;
-          font-size: 0.8rem;
-          letter-spacing: 0.05em;
-        }
-
-        .btn-exit-minimal:hover {
-          background: #5d4e41;
+        .done-btn {
+          background: #8a7b6a;
           color: white;
-          border-color: #5d4e41;
+          border: none;
+          padding: 0.6rem 1.5rem;
+          border-radius: 6px;
+          cursor: pointer;
+          font-family: inherit;
+          transition: background 0.2s;
         }
 
-        .document-body {
+        .done-btn:hover { background: #6b5e54; }
+
+        .guide-stack {
           display: flex;
           flex-direction: column;
-          gap: 4rem;
+          gap: 2.5rem;
         }
 
-        .document-section-block {
-          position: relative;
-          padding-left: 2.5rem;
-          border-left: 2px solid #e8e2db;
+        .guide-card {
+          border-radius: 16px;
+          padding: 2.5rem;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+          border: 1px solid rgba(255,255,255,0.4);
         }
 
-        .section-label-container {
+        .card-header {
           margin-bottom: 1.5rem;
         }
 
         .section-label {
-          font-size: 1.1rem;
-          font-weight: 700;
-          color: #8c7e6d;
-          text-transform: uppercase;
+          font-size: 0.9rem;
+          font-weight: 800;
           letter-spacing: 0.15em;
+          color: #8a7b6a; 
           margin: 0 0 0.5rem 0;
         }
 
-        .section-divider {
-          height: 1px;
-          background: #eee8e0;
-          width: 100%;
+        .header-divider {
+          border: none;
+          border-top: 1px solid rgba(138, 123, 106, 0.2);
+          margin: 0;
         }
 
-        .section-content-wrapper {
-          padding-top: 0.5rem;
-        }
-
-        .section-body-text {
-          line-height: 1.8;
+        .card-body {
           font-size: 1.15rem;
-          text-align: justify;
         }
 
-        .paragraph {
-          margin-bottom: 1.5rem;
+        .content-para {
+          margin-bottom: 1.2rem;
         }
 
-        .list-item {
+        .list-row {
           display: flex;
-          gap: 1rem;
-          margin-bottom: 0.8rem;
-          align-items: flex-start;
+          gap: 0.8rem;
+          margin-bottom: 0.6rem;
+          padding-left: 0.5rem;
         }
 
-        .bullet-marker {
-          color: #8c7e6d;
+        .dot {
+          color: #8a7b6a;
+          font-size: 1.1rem;
+          line-height: 1.3;
           font-weight: bold;
         }
 
-        .list-content {
-          flex: 1;
-        }
+        .text { flex: 1; }
 
-        .sub-section-header {
-          margin-top: 2rem;
-          margin-bottom: 1rem;
-          color: #5d4e41;
-          font-size: 1.3rem;
+        .sub-header {
+          margin: 2rem 0 1rem 0;
+          font-size: 1.25rem;
           font-weight: 700;
-          text-decoration: underline;
-          text-underline-offset: 4px;
-          text-decoration-thickness: 1px;
+          color: #443c35;
         }
 
         strong {
-          color: #443c35;
+          color: #2c2420;
           font-weight: 700;
         }
 
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
+        .animate-slide-up {
+          animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Dark mode overrides if needed */
-        [data-theme="dark"] .guide-document-container {
-          background: #1a1918;
-          color: #d1c7bc;
+        [data-theme="dark"] .study-guide-arena { color: #d1c7bc; }
+        [data-theme="dark"] .main-title { color: #e8e2db; }
+        [data-theme="dark"] .section-label { color: #c08b5c; }
+        [data-theme="dark"] .dot { color: #c08b5c; }
+        [data-theme="dark"] .sub-header { color: #e8e2db; }
+        [data-theme="dark"] .guide-card {
+           background: rgba(44, 36, 32, 0.7) !important;
         }
-        [data-theme="dark"] .document-title { color: #e8e2db; }
-        [data-theme="dark"] .document-header { border-color: #3d3b38; }
-        [data-theme="dark"] .section-divider { background: #3d3b38; }
-        [data-theme="dark"] .document-section-block { border-color: #3d3b38; }
-        [data-theme="dark"] strong { color: #fff; }
       `}</style>
     </div>
   );
