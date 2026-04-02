@@ -110,12 +110,26 @@ router.post('/generate', async (req, res) => {
 
       if (fallbackPairs.length > 0) {
         if (mode === 'quiz') {
+          const sanitizeFallback = (str) => {
+            if (!str) return '';
+            return String(str)
+              .replace(/\*\*/g, '')
+              .replace(/[•●]/g, '')
+              .replace(/^[*\-#]\s*/, '')
+              .trim();
+          };
+
           // Convert pairs to simple quiz
-          const quiz = fallbackPairs.map((p, i) => ({
-            question: `What is the definition of "${p.term}"?`,
-            options: [p.definition, ...fallbackPairs.filter((_, idx) => idx !== i).slice(0, 3).map(f => f.definition)],
-            correctAnswer: p.definition
-          }));
+          const quiz = fallbackPairs.map((p, i) => {
+            const cleanQuestion = sanitizeFallback(p.term);
+            const cleanDefinition = sanitizeFallback(p.definition);
+            const fallbackOptions = fallbackPairs.filter((_, idx) => idx !== i).slice(0, 3).map(f => sanitizeFallback(f.definition));
+            return {
+              question: `What is the definition of "${cleanQuestion}"?`,
+              options: [cleanDefinition, ...fallbackOptions],
+              correctAnswer: cleanDefinition
+            };
+          });
           return res.json({ type: 'quiz', data: quiz, isFallback: true });
         } else if (mode === 'guide') {
           return res.json({ type: 'guide', data: combinedContent, isFallback: true });

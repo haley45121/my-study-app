@@ -2,22 +2,35 @@ export default function StudyGuideArena({ guideText, onExit }) {
   
   const parseSections = (text) => {
     if (!text) return { title: 'Study Guide', sections: [] };
-    const lines = text.split('\n');
+    
+    // Clean up potential markdown code block wrappers
+    const cleanText = text.replace(/^```(markdown)?\n?/i, '').replace(/```$/i, '').trim();
+    const lines = cleanText.split('\n');
     let title = 'Study Guide';
     const sections = [];
     let currentSection = null;
 
     lines.forEach(line => {
-      if (line.startsWith('# ') && !line.startsWith('## ')) {
-        title = line.substring(2).trim();
-      } else if (line.startsWith('## ')) {
-        if (currentSection) sections.push(currentSection);
-        currentSection = { title: line.substring(3).trim(), content: [] };
-      } else if (currentSection) {
+      const trimmedLine = line.trim();
+      
+      if (trimmedLine.startsWith('# ') && !trimmedLine.startsWith('## ')) {
+        title = trimmedLine.substring(2).trim();
+      } else if (trimmedLine.startsWith('## ')) {
+        if (currentSection && currentSection.content.some(c => c.trim())) {
+          sections.push(currentSection);
+        }
+        currentSection = { title: trimmedLine.substring(3).trim(), content: [] };
+      } else {
+        if (!currentSection) {
+          currentSection = { title: 'General Overview', content: [] };
+        }
         currentSection.content.push(line);
       }
     });
-    if (currentSection) sections.push(currentSection);
+
+    if (currentSection && currentSection.content.some(c => c.trim())) {
+      sections.push(currentSection);
+    }
     
     return { title, sections };
   };

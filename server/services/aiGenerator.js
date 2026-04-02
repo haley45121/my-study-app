@@ -117,22 +117,24 @@ async function uploadDocumentForFlashcards(filePath, mimeType = 'application/pdf
 async function generateQuizFromContent(content) {
   const client = getAIClient();
   const quizSchema = {
-    type: "array",
+    type: Type.ARRAY,
     items: {
-      type: "object",
+      type: Type.OBJECT,
       properties: {
-        question: { type: "string" },
-        options: { type: "array", items: { type: "string" }, minItems: 4, maxItems: 4 },
-        correctAnswer: { type: "string" },
-        explanation: { type: "string" }
+        question: { type: Type.STRING },
+        options: { type: Type.ARRAY, items: { type: Type.STRING } },
+        correctAnswer: { type: Type.STRING },
+        explanation: { type: Type.STRING }
       },
       required: ["question", "options", "correctAnswer"]
     }
   };
 
   const prompt = `Based on the following study content, generate at least 20 multiple choice questions.
-  Each question must focus strictly on a specific term and its definition. 
-  Each question must have exactly 4 plausible options, where only one is correct. 
+  Each question must focus strictly on a specific term, concept, or fact explicitly found in the content.
+  Each question must have exactly 4 plausible, meaningful options, where only one is correct. 
+  DO NOT use section headers or bullet points as answer choices; write fully formed, real conceptual answers.
+  IMPORTANT: Strip all markdown symbols (like •, **, #, -, *) from both the question and all option text before returning. Give clean, plain text only.
   
   Content: ${content}`;
 
@@ -147,7 +149,31 @@ async function generateQuizFromContent(content) {
     }
   });
 
-  return JSON.parse(response.text);
+  let parsed;
+  try {
+    parsed = JSON.parse(response.text);
+  } catch (parseErr) {
+    console.error('Quiz JSON parsing failed, string cleaning required', parseErr);
+    const cleanJson = response.text.replace(/^```(json)?\n?/i, '').replace(/```$/i, '').trim();
+    parsed = JSON.parse(cleanJson);
+  }
+
+  // Sanitize out all markdown bullets, hyphens, boldness, and hash symbols
+  const sanitize = (str) => {
+    if (!str) return '';
+    return String(str)
+      .replace(/\*\*/g, '')
+      .replace(/[•●]/g, '')
+      .replace(/^[*\-#]\s*/, '')
+      .trim();
+  };
+
+  return parsed.map(q => ({
+    ...q,
+    question: sanitize(q.question),
+    options: Array.isArray(q.options) ? q.options.map(o => sanitize(o)) : [],
+    correctAnswer: sanitize(q.correctAnswer)
+  }));
 }
 
 async function semanticGradeAnswer(userAnswer, correctAnswer) {

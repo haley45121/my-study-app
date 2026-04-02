@@ -13,6 +13,7 @@ export default function Learn() {
   const [selectedSets, setSelectedSets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [genError, setGenError] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [activeMode, setActiveMode] = useState('quiz'); // quiz, recall, game
   const [studyData, setStudyData] = useState(null);
@@ -104,6 +105,7 @@ export default function Learn() {
       return;
     }
 
+    setGenError(null);
     setGenerating(true);
     try {
       const result = await learnApi.generate({
@@ -113,7 +115,7 @@ export default function Learn() {
       });
       setStudyData(result.data);
     } catch (err) {
-      alert('Generation failed: ' + err.message);
+      setGenError(err.message || 'Error communicating with AI service. Please check your API key and connection.');
     } finally {
       setGenerating(false);
     }
@@ -270,16 +272,31 @@ export default function Learn() {
             </div>
           </div>
 
-          <button 
-            className="btn btn-primary btn-lg" 
-            style={{ width: '100%' }}
-            onClick={handleStart}
-            disabled={generating || (selectedFiles.length === 0 && selectedSets.length === 0)}
-          >
-            {generating ? (
-              <><div className="spinner spinner-white"></div> Generating...</>
-            ) : 'Start Learning'}
-          </button>
+          <div style={{ marginTop: '2rem' }}>
+            {genError && (
+              <div className="alert" style={{ marginBottom: '1rem', background: 'var(--highlight-pink)', color: 'var(--error)', border: '1px solid var(--error)' }}>
+                <strong>Failed:</strong> {genError}
+              </div>
+            )}
+            
+            {generating && (
+              <div className="alert alert-info" style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div className="spinner spinner-xs" style={{ borderTopColor: 'var(--info)' }}></div>
+                <span>AI is currently reading your materials and generating the {activeMode === 'guide' ? 'study guide' : activeMode}...</span>
+              </div>
+            )}
+
+            <button 
+              className="btn btn-primary btn-lg" 
+              style={{ width: '100%' }}
+              onClick={handleStart}
+              disabled={generating || (selectedFiles.length === 0 && selectedSets.length === 0)}
+            >
+              {generating ? (
+                <><div className="spinner spinner-white"></div> Generating...</>
+              ) : 'Start Learning'}
+            </button>
+          </div>
         </div>
       </div>
 
