@@ -3,7 +3,6 @@ export default function StudyGuideArena({ guideText, onExit }) {
   const parseSections = (text) => {
     if (!text) return { title: 'Study Guide', sections: [] };
     
-    // Clean up potential markdown code block wrappers and raw source markers
     const cleanText = text
       .replace(/^```(markdown)?\n?/i, '')
       .replace(/```$/i, '')
@@ -44,23 +43,13 @@ export default function StudyGuideArena({ guideText, onExit }) {
 
   const { title, sections } = parseSections(guideText);
 
-  // Soft pastel backgrounds matching the aesthetic
-  const pastels = [
-    'rgba(125, 160, 125, 0.12)', // soft sage green
-    'rgba(200, 138, 144, 0.12)', // dusty rose
-    'rgba(192, 139, 92, 0.12)',  // warm beige
-    'rgba(155, 142, 196, 0.12)'  // muted lavender
-  ];
-
   const formatLine = (line, i) => {
     let cleanLine = line;
     
-    // Handle level 3 headers
     if (line.startsWith('### ')) {
       return <h4 key={i} className="sub-section-header">{line.substring(4).replace(/\*\*/g, '')}</h4>;
     }
     
-    // Detect and strip bullet points
     const bulletRegex = /^\s*[•○●◦▪️▫️\-*]\s+/;
     const isList = bulletRegex.test(line);
     if (isList) {
@@ -69,7 +58,6 @@ export default function StudyGuideArena({ guideText, onExit }) {
     
     if (!cleanLine.trim() && !isList) return null;
 
-    // Handle bolding
     const parts = cleanLine.split(/(\*\*.*?\*\*)/g);
     const renderedLine = parts.map((part, index) => {
       if (part.startsWith('**') && part.endsWith('**')) {
@@ -81,7 +69,7 @@ export default function StudyGuideArena({ guideText, onExit }) {
     if (isList) {
       return (
         <li key={i} className="list-item">
-          <span className="bullet-dot">•</span>
+          <span className="bullet-marker">—</span>
           <span className="list-content">{renderedLine}</span>
         </li>
       );
@@ -91,134 +79,180 @@ export default function StudyGuideArena({ guideText, onExit }) {
   };
 
   return (
-    <div className="arena-container guide-arena">
-      <div className="arena-header study-guide-header">
-        <div className="header-left">
-          <h1 className="guide-main-title">{title}</h1>
-          <p className="subtitle">AI-generated comprehensive review</p>
+    <div className="guide-document-container">
+      <div className="document-header">
+        <div className="header-main">
+          <h1 className="document-title">{title}</h1>
+          <div className="document-meta">Official Study Guide • AI-Synthesized Review</div>
         </div>
-        <button className="btn btn-secondary exit-btn" onClick={onExit}>
-          Done
-        </button>
+        <button className="btn-exit-minimal" onClick={onExit}>Close Document</button>
       </div>
-      
-      <div className="guide-content">
+
+      <div className="document-body">
         {sections.map((sec, idx) => (
-          <div key={idx} className="guide-section card-panel" style={{ backgroundColor: pastels[idx % pastels.length] }}>
-            <h2 className="section-title">{sec.title}</h2>
-            <div className="section-body">
-              {sec.content.map((line, i) => formatLine(line, i))}
+          <div key={idx} className="document-section-block">
+            <div className="section-label-container">
+              <h2 className="section-label">{sec.title}</h2>
+              <div className="section-divider"></div>
+            </div>
+            <div className="section-content-wrapper">
+              <div className="section-body-text">
+                {sec.content.map((line, i) => formatLine(line, i))}
+              </div>
             </div>
           </div>
         ))}
       </div>
 
       <style>{`
-        .guide-arena {
-          max-width: 950px;
+        .guide-document-container {
+          max-width: 850px;
           margin: 0 auto;
-          animation: fadeIn 0.4s ease-out;
+          padding: 4rem 2rem;
           font-family: "Times New Roman", Times, serif;
-          color: var(--text-primary);
+          color: #2d2a26;
+          background: #fffcf9; /* subtle cream tint */
+          min-height: 100vh;
+          animation: fadeIn 0.6s ease-out;
         }
-        .study-guide-header {
+
+        .document-header {
           display: flex;
           justify-content: space-between;
-          align-items: flex-end;
-          margin-bottom: 2.5rem;
-          padding-bottom: 1.5rem;
-          border-bottom: 2px solid var(--border-primary);
+          align-items: flex-start;
+          margin-bottom: 5rem;
+          border-bottom: 3px double #d1c7bc;
+          padding-bottom: 2rem;
         }
-        .guide-main-title {
-          font-size: 3rem;
+
+        .document-title {
+          font-size: 2.8rem;
           font-weight: 700;
-          color: var(--accent-primary);
-          line-height: 1.1;
-          margin-bottom: 0.5rem;
-          letter-spacing: -0.02em;
+          color: #5d4e41;
+          margin: 0;
+          letter-spacing: -0.01em;
+          text-transform: uppercase;
         }
-        .subtitle {
-          font-size: 1.1rem;
-          font-style: italic;
-          opacity: 0.8;
+
+        .document-meta {
+          font-size: 0.9rem;
+          color: #8c7e6d;
+          margin-top: 0.5rem;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
         }
-        .guide-content {
+
+        .btn-exit-minimal {
+          background: transparent;
+          border: 1px solid #d1c7bc;
+          padding: 0.6rem 1.2rem;
+          font-family: inherit;
+          color: #8c7e6d;
+          cursor: pointer;
+          transition: all 0.2s;
+          text-transform: uppercase;
+          font-size: 0.8rem;
+          letter-spacing: 0.05em;
+        }
+
+        .btn-exit-minimal:hover {
+          background: #5d4e41;
+          color: white;
+          border-color: #5d4e41;
+        }
+
+        .document-body {
           display: flex;
           flex-direction: column;
-          gap: 2.5rem;
-          padding-bottom: 6rem;
+          gap: 4rem;
         }
-        .card-panel {
-          border-radius: var(--radius-lg);
-          padding: 3rem;
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
-          color: var(--text-primary);
-          border: 1px solid rgba(var(--accent-rgb), 0.1);
-          transition: transform 0.2s ease, box-shadow 0.2s ease;
-          background-color: var(--bg-panel);
+
+        .document-section-block {
+          position: relative;
+          padding-left: 2.5rem;
+          border-left: 2px solid #e8e2db;
         }
-        .card-panel:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.06);
+
+        .section-label-container {
+          margin-bottom: 1.5rem;
         }
-        .section-title {
-          color: var(--accent-primary);
-          font-size: 1.8rem;
-          margin-bottom: 2rem;
-          border-bottom: 1px solid rgba(var(--accent-rgb), 0.15);
-          padding-bottom: 1rem;
+
+        .section-label {
+          font-size: 1.1rem;
           font-weight: 700;
+          color: #8c7e6d;
+          text-transform: uppercase;
+          letter-spacing: 0.15em;
+          margin: 0 0 0.5rem 0;
         }
-        .section-body {
+
+        .section-divider {
+          height: 1px;
+          background: #eee8e0;
+          width: 100%;
+        }
+
+        .section-content-wrapper {
+          padding-top: 0.5rem;
+        }
+
+        .section-body-text {
           line-height: 1.8;
           font-size: 1.15rem;
+          text-align: justify;
         }
+
         .paragraph {
-          margin-bottom: 1.25rem;
+          margin-bottom: 1.5rem;
         }
+
         .list-item {
           display: flex;
           gap: 1rem;
-          margin-bottom: 0.75rem;
+          margin-bottom: 0.8rem;
           align-items: flex-start;
-          padding-left: 0.5rem;
         }
-        .bullet-dot {
-          color: var(--accent-primary);
+
+        .bullet-marker {
+          color: #8c7e6d;
           font-weight: bold;
-          font-size: 1.3rem;
-          line-height: 1;
-          margin-top: 2px;
         }
+
         .list-content {
           flex: 1;
         }
+
         .sub-section-header {
           margin-top: 2rem;
           margin-bottom: 1rem;
-          color: var(--text-primary);
-          font-size: 1.35rem;
+          color: #5d4e41;
+          font-size: 1.3rem;
+          font-weight: 700;
+          text-decoration: underline;
+          text-underline-offset: 4px;
+          text-decoration-thickness: 1px;
+        }
+
+        strong {
+          color: #443c35;
           font-weight: 700;
         }
-        strong {
-          color: #2c2c2c;
-          font-weight: 800;
+
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
         }
-        .exit-btn {
-          min-width: 120px;
-          height: 44px;
+
+        /* Dark mode overrides if needed */
+        [data-theme="dark"] .guide-document-container {
+          background: #1a1918;
+          color: #d1c7bc;
         }
-        [data-theme="dark"] .section-title,
-        [data-theme="dark"] .guide-main-title,
-        [data-theme="dark"] .bullet-dot {
-          color: var(--accent-primary-bright);
-        }
-        [data-theme="dark"] strong {
-          color: #f0f0f0;
-        }
-        [data-theme="dark"] .card-panel {
-          border-color: rgba(255, 255, 255, 0.05);
-        }
+        [data-theme="dark"] .document-title { color: #e8e2db; }
+        [data-theme="dark"] .document-header { border-color: #3d3b38; }
+        [data-theme="dark"] .section-divider { background: #3d3b38; }
+        [data-theme="dark"] .document-section-block { border-color: #3d3b38; }
+        [data-theme="dark"] strong { color: #fff; }
       `}</style>
     </div>
   );
