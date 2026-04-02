@@ -113,6 +113,7 @@ export const importExportApi = {
 };
 export const learnApi = {
   getFiles: () => request('/learn/files'),
+  deleteFile: (id) => request(`/learn/files/${id}`, { method: 'DELETE' }),
   getSets: () => request('/learn/sets'),
   generate: (payload) => request('/learn/generate', {
     method: 'POST',

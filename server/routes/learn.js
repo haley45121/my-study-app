@@ -14,6 +14,20 @@ router.get('/files', (req, res) => {
   }
 });
 
+// DELETE a file
+router.delete('/files/:id', (req, res) => {
+  try {
+    const db = getDb();
+    const result = db.prepare('DELETE FROM files WHERE id = ?').run(req.params.id);
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET all sets as alternative sources
 router.get('/sets', (req, res) => {
   try {

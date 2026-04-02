@@ -3,7 +3,7 @@ import { learnApi, importExportApi } from '../utils/api';
 import QuizArena from '../components/learn/QuizArena';
 import RecallArena from '../components/learn/RecallArena';
 import MatchingGame from '../components/learn/MatchingGame';
-import { FileText, FolderArchive, Target, Brain, Puzzle } from 'lucide-react';
+import { FileText, FolderArchive, Target, Brain, Puzzle, Trash2 } from 'lucide-react';
 
 export default function Learn() {
   const [files, setFiles] = useState([]);
@@ -39,6 +39,19 @@ export default function Learn() {
     setSelectedFiles(prev => 
       prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]
     );
+  };
+
+  const handleDeleteFile = async (e, id) => {
+    e.stopPropagation();
+    if (!window.confirm('Are you sure you want to delete this file completely?')) return;
+    
+    try {
+      await learnApi.deleteFile(id);
+      setSelectedFiles(prev => prev.filter(fId => fId !== id));
+      await loadSources();
+    } catch (err) {
+      alert('Failed to delete file: ' + err.message);
+    }
   };
 
   const toggleSet = (id) => {
@@ -142,10 +155,18 @@ export default function Learn() {
                     onClick={() => toggleFile(file.id)}
                   >
                     <div className="source-checkbox"></div>
-                    <div className="source-info">
+                    <div className="source-info" style={{ flex: 1 }}>
                       <div className="source-name">{file.name}</div>
                       <div className="source-meta">{file.type.toUpperCase()} &middot; {new Date(file.createdAt).toLocaleDateString()}</div>
                     </div>
+                    <button 
+                      className="btn btn-ghost btn-xs" 
+                      onClick={(e) => handleDeleteFile(e, file.id)}
+                      title="Delete File"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </div>
                 ))}
               </div>
