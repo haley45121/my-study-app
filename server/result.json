@@ -1,0 +1,27 @@
+[
+  {
+    "payload": 1,
+    "status": "FAILED",
+    "error": "{\"error\":{\"code\":400,\"message\":\"* GenerateContentRequest.contents[0].parts[0].data: required oneof field 'data' must have one initialized field\\n\",\"status\":\"INVALID_ARGUMENT\"}}"
+  },
+  {
+    "payload": 2,
+    "status": "SUCCESS"
+  },
+  {
+    "payload": 3,
+    "status": "SUCCESS"
+  },
+  {
+    "payload": 4,
+    "status": "SUCCESS"
+  },
+  {
+    "payload": 5,
+    "status": "SUCCESS"
+  },
+  {
+    "payload": 6,
+    "status": "SUCCESS"
+  }
+]
