@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_URL || 'https://my-study-app-production.up.railway.app/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 async function request(endpoint, options = {}) {
   const url = `${API_BASE}${endpoint}`;
